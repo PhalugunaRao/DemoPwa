@@ -186,8 +186,26 @@ public class BrowserScreen extends AppCompatActivity {
         webView.setDownloadListener(new DownloadListener() {
             @Override
             public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimeType, long contentLength) {
-                webView.loadUrl(JavaScriptInterfaceee.getBase64StringFromBlobUrl(url,mimeType),null);
-               // webView.evaluateJavascript(new JavascriptInterface(this).getBase64StringFromBlobUrl(url), null)
+                BroadcastReceiver onComplete = new BroadcastReceiver() {
+                    @Override
+                    public void onReceive(Context context, Intent intent) {
+                        Toast.makeText(getApplicationContext(), "Downloading Complete", Toast.LENGTH_SHORT).show();
+                    }
+                };
+                if(url.startsWith("blob")) {
+                    webView.loadUrl(JavaScriptInterfaceee.getBase64StringFromBlobUrl(url, mimeType), null);
+                }else{
+                    DownloadManager manager = (DownloadManager) getSystemService(Activity.DOWNLOAD_SERVICE);
+                    Uri uri = Uri.parse(url);
+                    DownloadManager.Request request = new DownloadManager.Request(uri);
+                    request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                    request.setTitle(URLUtil.guessFileName(url,contentDisposition,mimeType));
+                    request.setMimeType(mimeType);
+                    request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,URLUtil.guessFileName(url,contentDisposition,mimeType));
+                    manager.enqueue(request);
+                    registerReceiver(onComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+                }
+
 
             }
         });
