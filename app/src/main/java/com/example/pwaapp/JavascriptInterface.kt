@@ -1,10 +1,15 @@
+/*
 package com.example.pwaapp
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Environment
 import android.util.Base64
 import android.util.Log
 import android.webkit.JavascriptInterface
+import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import java.io.File
 import java.io.FileOutputStream
 
@@ -24,14 +29,16 @@ class JavascriptInterface {
         return file.absolutePath.toString() + "/" + "foo" + ".pdf"
     }
 
-    /**
+    */
+/**
      * Method to process Base64 data then save it locally.
      *
      * 1. Strip Base64 prefix from Base64 data
      * 2. Decode Base64 data
      * 3. Write Base64 data to file based on mime type located in prefix
      * 4. Save file locally
-     */
+     *//*
+
     @JavascriptInterface
     fun processBase64Data(base64Data: String) {
         Log.i("JavascriptInterface/processBase64Data", "Processing base64Data ...")
@@ -59,16 +66,34 @@ class JavascriptInterface {
             val os = FileOutputStream(downloadPath, false)
             os.write(decodedString)
             os.flush()
+
+
+            val intent = Intent()
+            intent.action = Intent.ACTION_VIEW
+            val authority = "com.example.pwaapp.fileprovider"
+            val imgUrl = FileProvider.getUriForFile(context, authority, downloadPath)
+            val uri = File(downloadPath.absolutePath).toURI()
+            intent.setDataAndType(imgUrl, "application/pdf")
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            context.startActivity(intent)
+
+
+
+
+
+
         }
     }
 
-    /**
+    */
+/**
      * Method to convert blobUrl to Blob, then process Base64 data on native side
      *
      * 1. Download Blob URL as Blob object
      * 2. Convert Blob object to Base64 data
      * 3. Pass Base64 data to Android layer for processing
-     */
+     *//*
+
     fun getBase64StringFromBlobUrl(blobUrl: String): String {
         Log.i("JavascriptInterface/getBase64StringFromBlobUrl", "Downloading $blobUrl ...")
 
@@ -99,3 +124,4 @@ class JavascriptInterface {
         return script
     }
 }
+*/

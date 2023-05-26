@@ -5,8 +5,10 @@ import static com.example.pwaapp.AppUtilsKt.whiteStatus;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.DownloadManager;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
@@ -19,6 +21,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.DownloadListener;
+import android.webkit.JavascriptInterface;
 import android.webkit.URLUtil;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -162,12 +165,12 @@ public class BrowserScreen extends AppCompatActivity {
         settings.setAllowUniversalAccessFromFileURLs(true);
         // Keeping these off is less critical but still a good idea, especially if your app is not
         // using file:// or content:// URLs.
-       /* settings.setAllowFileAccess(true);
+        settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
-        JavascriptInterface javascriptInterface = new JavascriptInterface(getApplicationContext());
+        JavaScriptInterfaceee javascriptInterface = new JavaScriptInterfaceee(getApplicationContext());
         webView.addJavascriptInterface(javascriptInterface, "Android");
-*/
-       /* webView.setDownloadListener(new DownloadListener() {
+
+        /*webView.setDownloadListener(new DownloadListener() {
             @Override
             public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimetype, long contentLength) {
                 if (url.startsWith("blob:")) {
@@ -175,18 +178,19 @@ public class BrowserScreen extends AppCompatActivity {
                     webView.evaluateJavascript(javascriptInterface.getBase64StringFromBlobUrl(url), null);
                 }
             }
+
         });*/
 
 
 
-        /*webView.setDownloadListener(new DownloadListener() {
+        webView.setDownloadListener(new DownloadListener() {
             @Override
             public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimeType, long contentLength) {
-                webView.loadUrl(JavascriptInterface.getBase64StringFromBlobUrl(url),null);
-                webView.evaluateJavascript(new JavascriptInterface(this).getBase64StringFromBlobUrl(url), null)
+                webView.loadUrl(JavaScriptInterfaceee.getBase64StringFromBlobUrl(url,mimeType),null);
+               // webView.evaluateJavascript(new JavascriptInterface(this).getBase64StringFromBlobUrl(url), null)
 
             }
-        });*/
+        });
 
         /*webView.setDownloadListener(new DownloadListener()
         {
@@ -231,6 +235,40 @@ public class BrowserScreen extends AppCompatActivity {
                         Toast.LENGTH_LONG).show();
 
             }
+        });*/
+
+       /* webView.setDownloadListener(new DownloadListener() {
+            @Override
+            public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimetype, long contentLength) {
+               String myurl= "https://pwa.ekincare.com/c78f865e-a3d4-43a4-ad33-4a5ec00d7047";
+                System.out.println("====mimetype"+mimetype);
+
+                DownloadManager manager = (DownloadManager) getSystemService(Activity.DOWNLOAD_SERVICE);
+                Uri uri = Uri.parse(myurl);
+                DownloadManager.Request request = new DownloadManager.Request(uri);
+                request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                request.setTitle("goo3.pdf");
+                request.setMimeType(mimetype);
+                request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,"goo3.pdf");
+                manager.enqueue(request);
+
+               *//* DownloadManager.Request request = new DownloadManager.Request(Uri.parse(myurl));
+                request.setTitle("goo.pdf");
+                //request.setTitle(URLUtil.guessFileName(myurl, contentDisposition, "application/pdf"));
+                request.setDescription("Downloading file...");
+                request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "goo.pdf");
+                DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+                dm.enqueue(request);*//*
+                Toast.makeText(getApplicationContext(), "Downloading...", Toast.LENGTH_SHORT).show();
+                registerReceiver(onComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+            }
+            BroadcastReceiver onComplete = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    Toast.makeText(getApplicationContext(), "Downloading Complete", Toast.LENGTH_SHORT).show();
+                }
+            };
         });*/
     }
 
