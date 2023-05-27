@@ -1,9 +1,15 @@
 package com.example.pwaapp;
 
+import static com.example.pwaapp.AppUtilsKt.whiteStatus;
+
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.DownloadManager;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.net.Uri;
@@ -14,6 +20,9 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
+import android.webkit.DownloadListener;
+import android.webkit.PermissionRequest;
+import android.webkit.URLUtil;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
@@ -80,6 +89,9 @@ public class MainActivityDemo extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
+        whiteStatus(this);
+        this.getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.white));
+        getSupportActionBar().hide();
         setContentView(R.layout.activity_main);
 
         if(Build.VERSION.SDK_INT >=23 && (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED)) {
@@ -119,7 +131,49 @@ public class MainActivityDemo extends AppCompatActivity {
         settings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
         webView.setWebViewClient(new Callback());
         webView.loadUrl("https://pwa.ekincare.com");
+        settings.setAllowFileAccessFromFileURLs(true);
+        // Off by default, deprecated for SDK versions >= 30.
+        settings.setAllowUniversalAccessFromFileURLs(true);
+        // Keeping these off is less critical but still a good idea, especially if your app is not
+        // using file:// or content:// URLs.
+        settings.setAllowFileAccess(true);
+        settings.setAllowContentAccess(true);
+        JavaScriptInterfaceee javascriptInterface = new JavaScriptInterfaceee(getApplicationContext());
+        webView.addJavascriptInterface(javascriptInterface, "Android");
+        webView.setDownloadListener(new DownloadListener() {
+            @Override
+            public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimeType, long contentLength) {
+                BroadcastReceiver onComplete = new BroadcastReceiver() {
+                    @Override
+                    public void onReceive(Context context, Intent intent) {
+                        Toast.makeText(getApplicationContext(), "Downloading Complete", Toast.LENGTH_SHORT).show();
+                    }
+                };
+                if(url.startsWith("blob")) {
+                    webView.loadUrl(JavaScriptInterfaceee.getBase64StringFromBlobUrl(url, mimeType), null);
+                }else{
+                    DownloadManager manager = (DownloadManager) getSystemService(Activity.DOWNLOAD_SERVICE);
+                    Uri uri = Uri.parse(url);
+                    DownloadManager.Request request = new DownloadManager.Request(uri);
+                    request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                    request.setTitle(URLUtil.guessFileName(url,contentDisposition,mimeType));
+                    request.setMimeType(mimeType);
+                    request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,URLUtil.guessFileName(url,contentDisposition,mimeType));
+                    manager.enqueue(request);
+                    registerReceiver(onComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+                }
+
+
+            }
+        });
         webView.setWebChromeClient(new WebChromeClient(){
+            @Override
+            public void onPermissionRequest(PermissionRequest request) {
+                super.onPermissionRequest(request);
+                request.grant(request.getResources());
+
+            }
+
             //For Android 3.0+
             public void openFileChooser(ValueCallback<Uri> uploadMsg){
                 mUM = uploadMsg;
@@ -172,6 +226,7 @@ public class MainActivityDemo extends AppCompatActivity {
                         } else {
                             imgUrl = Uri.fromFile(photoFile);
                         }
+                        System.out.println("====imagurl===+"+imgUrl);
                         takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, imgUrl);
                     }else{
                         takePictureIntent = null;
