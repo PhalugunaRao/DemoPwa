@@ -1,5 +1,5 @@
 
-package com.example.pwaapp;
+package com.example.pwaapp.script;
 
 import android.app.Notification;
 import android.app.NotificationChannel;

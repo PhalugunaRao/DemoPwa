@@ -1,4 +1,4 @@
-package com.example.pwaapp
+package com.example.pwaapp.test
 
 import android.app.DownloadManager
 import android.net.Uri
@@ -10,6 +10,9 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.example.pwaapp.R
+import com.example.pwaapp.setStatusBarColor
+import com.example.pwaapp.whiteStatus
 
 class MainActivity : AppCompatActivity() {
     private lateinit var webView: WebView

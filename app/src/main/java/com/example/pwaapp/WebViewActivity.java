@@ -4,85 +4,34 @@ import static com.example.pwaapp.AppUtilsKt.whiteStatus;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.app.Activity;
-import android.app.DownloadManager;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
-import android.provider.MediaStore;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
-import android.webkit.DownloadListener;
-import android.webkit.PermissionRequest;
-import android.webkit.URLUtil;
-import android.webkit.ValueCallback;
-import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.core.content.FileProvider;
 
-import java.io.File;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import com.example.pwaapp.script.JavaScriptInterfaceee;
+import com.example.pwaapp.util.CustomWebChromeClient2;
+import com.example.pwaapp.util.ReusableDownloadListener;
+import com.example.pwaapp.util.ReusableWebViewClient;
 
 public class WebViewActivity extends AppCompatActivity {
     WebView webView;
-    private static final String TAG = MainActivity.class.getSimpleName();
-    private String mCM;
-    private ValueCallback<Uri> mUM;
-    private ValueCallback<Uri[]> mUMA;
-    private final static int FCR=1;
+    private CustomWebChromeClient2 webChromeClient;
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent intent){
-        super.onActivityResult(requestCode, resultCode, intent);
-        if(Build.VERSION.SDK_INT >= 21){
-            Uri[] results = null;
-            //Check if response is positive
-            if(resultCode== Activity.RESULT_OK){
-                if(requestCode == FCR){
-                    if(null == mUMA){
-                        return;
-                    }
-                    if(intent == null || intent.getData() == null){
-                        //Capture Photo if no image available
-                        if(mCM != null){
-                            results = new Uri[]{Uri.parse(mCM)};
-                        }
-                    }else{
-                        String dataString = intent.getDataString();
-                        if(dataString != null){
-                            results = new Uri[]{Uri.parse(dataString)};
-                        }
-                    }
-                }
-            }
-            mUMA.onReceiveValue(results);
-            mUMA = null;
-        }else{
-            if(requestCode == FCR){
-                if(null == mUM) return;
-                Uri result = intent == null || resultCode != RESULT_OK ? null : intent.getData();
-                mUM.onReceiveValue(result);
-                mUM = null;
-            }
-        }
+    protected void onActivityResult(int requestCode, int resultCode, Intent data){
+        super.onActivityResult(requestCode, resultCode, data);
+        webChromeClient.onActivityResult(requestCode, resultCode, data);
     }
 
     @SuppressLint({"SetJavaScriptEnabled", "WrongViewCast"})
@@ -114,7 +63,6 @@ public class WebViewActivity extends AppCompatActivity {
 
         }
         WebSettings settings = webView.getSettings();
-        //settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
         webView.clearHistory();
         webView.clearFormData();
         webView.clearCache(true);
@@ -129,7 +77,7 @@ public class WebViewActivity extends AppCompatActivity {
         settings.setAllowContentAccess(true);
         settings.setAllowFileAccess(true);
         settings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
-        webView.setWebViewClient(new Callback());
+        webView.setWebViewClient(new ReusableWebViewClient());
         webView.loadUrl("https://pwa.ekincare.com");
         settings.setAllowFileAccessFromFileURLs(true);
         // Off by default, deprecated for SDK versions >= 30.
@@ -140,129 +88,14 @@ public class WebViewActivity extends AppCompatActivity {
         settings.setAllowContentAccess(true);
         JavaScriptInterfaceee javascriptInterface = new JavaScriptInterfaceee(getApplicationContext());
         webView.addJavascriptInterface(javascriptInterface, "Android");
-        webView.setDownloadListener(new DownloadListener() {
-            @Override
-            public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimeType, long contentLength) {
-                BroadcastReceiver onComplete = new BroadcastReceiver() {
-                    @Override
-                    public void onReceive(Context context, Intent intent) {
-                        Toast.makeText(getApplicationContext(), "Downloading Complete", Toast.LENGTH_SHORT).show();
-                    }
-                };
-                if(url.startsWith("blob")) {
-                    webView.loadUrl(JavaScriptInterfaceee.getBase64StringFromBlobUrl(url, mimeType), null);
-                }else{
-                    DownloadManager manager = (DownloadManager) getSystemService(Activity.DOWNLOAD_SERVICE);
-                    Uri uri = Uri.parse(url);
-                    DownloadManager.Request request = new DownloadManager.Request(uri);
-                    request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-                    request.setTitle(URLUtil.guessFileName(url,contentDisposition,mimeType));
-                    request.setMimeType(mimeType);
-                    request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,URLUtil.guessFileName(url,contentDisposition,mimeType));
-                    manager.enqueue(request);
-                    registerReceiver(onComplete, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
-                }
+        webView.setDownloadListener(new ReusableDownloadListener(this,webView));
 
+        webChromeClient = new CustomWebChromeClient2(this);
+        webView.setWebChromeClient(webChromeClient);
 
-            }
-        });
-        webView.setWebChromeClient(new WebChromeClient(){
-            @Override
-            public void onPermissionRequest(PermissionRequest request) {
-                super.onPermissionRequest(request);
-                request.grant(request.getResources());
-
-            }
-
-            //For Android 3.0+
-            public void openFileChooser(ValueCallback<Uri> uploadMsg){
-                mUM = uploadMsg;
-                Intent i = new Intent(Intent.ACTION_GET_CONTENT);
-                i.addCategory(Intent.CATEGORY_OPENABLE);
-                i.setType("*/*");
-                startActivityForResult(Intent.createChooser(i,"File Chooser"), FCR);
-            }
-            // For Android 3.0+, above method not supported in some android 3+ versions, in such case we use this
-            public void openFileChooser(ValueCallback uploadMsg, String acceptType){
-                mUM = uploadMsg;
-                Intent i = new Intent(Intent.ACTION_GET_CONTENT);
-                i.addCategory(Intent.CATEGORY_OPENABLE);
-                i.setType("*/*");
-                startActivityForResult(
-                        Intent.createChooser(i, "File Browser"),
-                        FCR);
-            }
-            //For Android 4.1+
-            public void openFileChooser(ValueCallback<Uri> uploadMsg, String acceptType, String capture){
-                mUM = uploadMsg;
-                Intent i = new Intent(Intent.ACTION_GET_CONTENT);
-                i.addCategory(Intent.CATEGORY_OPENABLE);
-                i.setType("*/*");
-                startActivityForResult(Intent.createChooser(i, "File Chooser"), FCR);
-            }
-            //For Android 5.0+
-            public boolean onShowFileChooser(
-                    WebView webView, ValueCallback<Uri[]> filePathCallback,
-                    WebChromeClient.FileChooserParams fileChooserParams){
-                if(mUMA != null){
-                    mUMA.onReceiveValue(null);
-                }
-                mUMA = filePathCallback;
-                Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                if(takePictureIntent.resolveActivity(getPackageManager()) != null){
-                    File photoFile = null;
-                    try{
-                        photoFile = createImageFile();
-                        takePictureIntent.putExtra("PhotoPath", mCM);
-                    }catch(IOException ex){
-                        Log.e(TAG, "Image file creation failed", ex);
-                    }
-                    if(photoFile != null){
-                        mCM = "file:" + photoFile.getAbsolutePath();
-                        Uri imgUrl;
-                        if (getApplicationInfo().targetSdkVersion > Build.VERSION_CODES.M) {
-                            String authority = "com.example.pwaapp.fileprovider";
-                            imgUrl = FileProvider.getUriForFile(WebViewActivity.this, authority, photoFile);
-                        } else {
-                            imgUrl = Uri.fromFile(photoFile);
-                        }
-                        System.out.println("====imagurl===+"+imgUrl);
-                        takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, imgUrl);
-                    }else{
-                        takePictureIntent = null;
-                    }
-                }
-                Intent contentSelectionIntent = new Intent(Intent.ACTION_GET_CONTENT);
-                contentSelectionIntent.addCategory(Intent.CATEGORY_OPENABLE);
-                contentSelectionIntent.setType("*/*");
-                Intent[] intentArray;
-                if(takePictureIntent != null){
-                    intentArray = new Intent[]{takePictureIntent};
-                }else{
-                    intentArray = new Intent[0];
-                }
-
-                Intent chooserIntent = new Intent(Intent.ACTION_CHOOSER);
-                chooserIntent.putExtra(Intent.EXTRA_INTENT, contentSelectionIntent);
-                chooserIntent.putExtra(Intent.EXTRA_TITLE, "Image Chooser");
-                chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, intentArray);
-                startActivityForResult(chooserIntent, FCR);
-                return true;
-            }
-        });
     }
-    public class Callback extends WebViewClient {
-        public void onReceivedError(WebView view, int errorCode, String description, String failingUrl){
-            Toast.makeText(getApplicationContext(), "Failed loading app!", Toast.LENGTH_SHORT).show();
-        }
-    }
-    // Create an image file
-    private File createImageFile() throws IOException{
-        @SuppressLint("SimpleDateFormat") String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-        String imageFileName = "img_"+timeStamp+"_";
-        File storageDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
-        return File.createTempFile(imageFileName,".jpg",storageDir);
-    }
+
+
     @Override
     public boolean onKeyDown(int keyCode, @NonNull KeyEvent event){
         if(event.getAction() == KeyEvent.ACTION_DOWN){

@@ -1,4 +1,4 @@
-package com.example.pwaapp;
+package com.example.pwaapp.test;
 
 import static com.example.pwaapp.AppUtilsKt.whiteStatus;
 
@@ -36,6 +36,9 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
+import com.example.pwaapp.script.JavaScriptInterfaceee;
+import com.example.pwaapp.R;
+
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -52,6 +55,7 @@ public class MainActivityDemo extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent intent){
         super.onActivityResult(requestCode, resultCode, intent);
+        System.out.println("====requestCode"+requestCode+"===="+resultCode+"==="+intent.getData());
         if(Build.VERSION.SDK_INT >= 21){
             Uri[] results = null;
             //Check if response is positive
