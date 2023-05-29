@@ -13,13 +13,13 @@ import android.webkit.WebView
 import android.widget.Toast
 import com.example.pwaapp.script.JavaScriptInterfaceee
 
-class ReusableDownloadListener(private val context: Context,private val webView: WebView) : DownloadListener {
+class ReusableDownloadListener(private val context: Context, private val webView: WebView) : DownloadListener {
     override fun onDownloadStart(
         url: String,
         userAgent: String,
         contentDisposition: String,
         mimeType: String,
-        contentLength: Long
+        contentLength: Long,
     ) {
         val onComplete = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
@@ -40,7 +40,7 @@ class ReusableDownloadListener(private val context: Context,private val webView:
             request.setMimeType(mimeType)
             request.setDestinationInExternalPublicDir(
                 Environment.DIRECTORY_DOWNLOADS,
-                URLUtil.guessFileName(url, contentDisposition, mimeType)
+                URLUtil.guessFileName(url, contentDisposition, mimeType),
             )
             manager.enqueue(request)
             context.registerReceiver(onComplete, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))

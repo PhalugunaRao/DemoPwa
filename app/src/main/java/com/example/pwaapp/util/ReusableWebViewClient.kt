@@ -19,11 +19,10 @@ class ReusableWebViewClient : WebViewClient() {
         view: WebView,
         errorCode: Int,
         description: String?,
-        failingUrl: String?
+        failingUrl: String?,
     ) {
         val context = view?.context ?: return
         Toast.makeText(context, "Failed loading app!", Toast.LENGTH_SHORT).show()
-
     }
 
     // Add other WebViewClient methods as per your requirements

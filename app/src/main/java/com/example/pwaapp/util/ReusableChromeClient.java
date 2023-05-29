@@ -20,13 +20,13 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class CustomWebChromeClient2 extends WebChromeClient {
+public class ReusableChromeClient extends WebChromeClient {
         private Activity mActivity;
         private ValueCallback<Uri[]> mUploadMessage;
         private String mCameraPhotoPath;
     private static final int FCR = 1;
 
-        public CustomWebChromeClient2(Activity activity) {
+        public ReusableChromeClient(Activity activity) {
             mActivity = activity;
         }
 
